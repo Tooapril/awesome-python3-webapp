@@ -1,9 +1,7 @@
 __author__ = 'Leslie Yang'
 
 import asyncio, os, inspect, logging, functools
-
 from urllib import parse
-
 from aiohttp import web
 
 from web_app.apis import APIError
@@ -89,7 +87,8 @@ class RequestHandler(object):
         self._named_kw_args = get_named_kw_args(fn)
         self._required_kw_args = get_required_kw_args(fn)
 
-    async def __call__(self, request):# __call__这里要构造协程
+    @asyncio.coroutine
+    def __call__(self, request):# __call__这里要构造协程
         kw = None
         if self._has_var_kw_arg or self._has_named_kw_args or self._required_kw_args:
             if request.method == 'POST':# 判断客户端发来的方法是否为POST
@@ -97,12 +96,12 @@ class RequestHandler(object):
                     return web.HTTPBadRequest(text='Missing Content-Type.')# 要有text
                 ct = request.content_type.lower()# 小写
                 if ct.startswith('application/json'):# startswitch
-                    params = await request.json()# Read request body decoded as json
+                    params = yield from request.json()# Read request body decoded as json
                     if not isinstance(params, dict):
                         return web.HTTPBadRequest(text='JSON body must be object.')# 要有text
                     kw = params
                 elif ct.startswith('application/x-www-form-urlencoded') or ct.startswith('multipart/form-data'):
-                    params = await request.post()# reads POST parameters from request body.
+                    params = yield from request.post()# reads POST parameters from request body.
                     kw = dict(**params)
                 else:
                     return web.HTTPBadRequest(text='Unsupported Content-Type: %s' % request.content_type)
@@ -137,7 +136,7 @@ class RequestHandler(object):
                     return web.HTTPBadRequest(text='Missing argument: %s' % name)
         logging.info('call with args: %s' % str(kw))
         try:
-            r = await self._func(**kw)
+            r = yield from self._func(**kw)
             return r
         except APIError as e:
             return dict(error=e.error, data=e.data, message=e.message)

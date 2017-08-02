@@ -1,4 +1,4 @@
-
+import asyncio, inspect, logging, functools
 
 def get(path):
 	'''
@@ -23,7 +23,7 @@ class RequestHandler(object):
 
 	@asyncio.coroutine
 	def __call__(self, request):
-		kw = 
+		kw = None
 		r = yield from self._func(**kw)
 		return r
 
